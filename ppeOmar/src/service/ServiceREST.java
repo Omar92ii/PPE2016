@@ -17,7 +17,7 @@ import ressources.MessageDTO;
 @Path("dto")
 public class ServiceREST {
 	
-	private final static String QUEUE_NAME = "journal";
+	//private final static String QUEUE_NAME = "journal";
 	private String messageJournal;
 	private String nomprenom;
 	private String role;
@@ -29,7 +29,7 @@ public class ServiceREST {
 		MessageDTO message = new MessageDTO();
 		
 		if(authentifier(email, password)) {
-			message.setBienvenue("Bienvenue " + nomprenom);
+			message.setBienvenue("Bienvenue " + nomprenom + ", votre rôle est ");
 			message.setRole(role);
 		}
 		else
@@ -53,6 +53,7 @@ public class ServiceREST {
 				}
 				else {
 						nomprenom = utilisateur.getNom() + " " + utilisateur.getPrenom();
+						role=utilisateur.getRole().getRole();
 						messageJournal = email + " accès " + new Date();
 						statut = true;
 				}
