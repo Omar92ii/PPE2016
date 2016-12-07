@@ -32,8 +32,10 @@ public class ServiceREST {
 			message.setBienvenue("Bienvenue " + nomprenom + ", votre rôle est ");
 			message.setRole(role);
 		}
-		else
+		else{
 			message.setBienvenue(messageJournal);
+			message.setRole("");
+		}
 		
 		return message;		
 	}
