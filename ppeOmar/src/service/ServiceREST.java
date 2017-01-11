@@ -1,6 +1,8 @@
 package service;
 
+import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.TimeoutException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -10,6 +12,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
 import modele.Utilisateur;
 import ressources.FournisseurDePersistance;
 import ressources.MessageDTO;
@@ -17,7 +23,7 @@ import ressources.MessageDTO;
 @Path("dto")
 public class ServiceREST {
 	
-	//private final static String QUEUE_NAME = "journal";
+	private final static String QUEUE_NAME = "journal";
 	private String messageJournal;
 	private String nomprenom;
 	private String role;
@@ -34,7 +40,7 @@ public class ServiceREST {
 		}
 		else{
 			message.setBienvenue(messageJournal);
-			message.setRole("");
+			message.setRole("null");
 		}
 		
 		return message;		
@@ -51,30 +57,30 @@ public class ServiceREST {
 				Utilisateur utilisateur = (Utilisateur) requete.getSingleResult();
 			
 				if(!utilisateur.getPassword().equals(password)) {
-					messageJournal = email + " mauvais password";
+					messageJournal = email + "|" + nomprenom + "|mauvais password|" + new Date();
 				}
 				else {
 						nomprenom = utilisateur.getNom() + " " + utilisateur.getPrenom();
 						role=utilisateur.getRole().getRole();
-						messageJournal = email + " accès " + new Date();
+						messageJournal = email + "|" + nomprenom + "|succes|" + new Date();
 						statut = true;
 				}
 				
 
 		} catch (Exception e) {
-			messageJournal = email + " utilisateur inconnu";
+			messageJournal = email + "||utilisateur inconnu|" +new Date();
 		}
 		finally {
 			em.getTransaction().commit();
 			em.close();
 			try {
-					//journaliser();
+					journaliser();
 			} catch (Exception e) {e.printStackTrace();
 			}			
 		}
 		return statut;
 	}
-	/*
+	
 	private void journaliser() throws IOException, TimeoutException {
 		ConnectionFactory factory = new ConnectionFactory();
 	    factory.setHost("rabbitmq");
@@ -87,5 +93,5 @@ public class ServiceREST {
 	    connexion.close();
 	    
 	}
-	*/
+	
 }
