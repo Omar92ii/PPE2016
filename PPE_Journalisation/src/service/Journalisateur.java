@@ -32,7 +32,7 @@ public class Journalisateur extends HttpServlet {
 
 	
 	private EntityManagerFactory emf = Persistence.createEntityManagerFactory("journal");
-	private final static String QUEUE_NAME = "journal";
+	private final static String QUEUE_NAME = "journal-des-authentifications";
 	private String message;
 	private Connection connection = null;
 	private Channel channel = null;
@@ -54,19 +54,28 @@ public class Journalisateur extends HttpServlet {
 	    factory.setHost("rabbitmq");
 	    connection = factory.newConnection();
 	    channel = connection.createChannel();
-	    channel.queueDeclare(QUEUE_NAME, false, false, false, null);	    
+	    channel.queueDeclare(QUEUE_NAME, false, false, false, null);	
 	    
-	    Consumer consumer = new DefaultConsumer(channel) {
-	        @Override
-	        public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)
-	            throws IOException {
-	       
-	          message = new String(body, "UTF-8");
-	          System.out.println("MESSAGE =======> " + message);
-	          journaliser();
-	        }
-	      };
-	      channel.basicConsume(QUEUE_NAME, true, consumer);
+	    boolean autoAck = false;
+	    channel.basicConsume(QUEUE_NAME, autoAck, "journalisateur",
+	         new DefaultConsumer(channel) {
+	             @Override
+	             public void handleDelivery(String consumerTag,
+	                                        Envelope envelope,
+	                                        AMQP.BasicProperties properties,
+	                                        byte[] body)
+	                 throws IOException
+	             {
+	                 String routingKey = envelope.getRoutingKey();
+	                 String contentType = properties.getContentType();
+	                 long deliveryTag = envelope.getDeliveryTag();
+	                 
+	                 message = new String(body, "UTF-8");
+	                 System.out.println(message);
+	   	          	 journaliser();
+	                 channel.basicAck(deliveryTag, false);
+	             }
+	         });	    
 	}
 	
 	private void journaliser() {
@@ -87,9 +96,17 @@ public class Journalisateur extends HttpServlet {
 	
 	
 	public Journalisateur() {
+		super();
 	}
 	
 	public void destroy() {
+		try {
+				channel.basicCancel("journalisateur");
+				channel.close();
+				connection.close();
+		} catch (IOException e) {e.printStackTrace();
+		} catch (TimeoutException e) {e.printStackTrace();
+		}		
 		emf.close();
 	}
 
